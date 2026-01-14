@@ -16,6 +16,7 @@ import { IAgent, ITool } from "./agents/type";
 import agentsManager from "./agents";
 import { EventEmitter } from "node:events";
 import { pluginManager, tokenSpeedPlugin } from "@musistudio/llms";
+import { requestLoggerPlugin } from "./plugins/request-logger.plugin";
 
 const event = new EventEmitter()
 
@@ -75,6 +76,13 @@ async function registerPluginsFromConfig(serverInstance: any, config: any): Prom
                 enabled: true
               }
             ],
+            ...options
+          });
+          break;
+
+        case 'request-logger':
+          pluginManager.registerPlugin(requestLoggerPlugin, {
+            enabled,
             ...options
           });
           break;
@@ -186,9 +194,6 @@ async function getServer(options: RunOptions = {}) {
       presets.map(async preset => await serverInstance.registerNamespace(`/preset/${preset.name}`, preset.config))
   )
 
-  // Register and configure plugins from config
-  await registerPluginsFromConfig(serverInstance, config);
-
   // Add async preHandler hook for authentication
   serverInstance.addHook("preHandler", async (req: any, reply: any) => {
     return new Promise<void>((resolve, reject) => {
@@ -200,6 +205,8 @@ async function getServer(options: RunOptions = {}) {
       apiKeyAuth(config)(req, reply, done).catch(reject);
     });
   });
+
+  // Set pathname early so plugins can use it
   serverInstance.addHook("preHandler", async (req: any, reply: any) => {
     const url = new URL(`http://127.0.0.1${req.url}`);
     req.pathname = url.pathname;
@@ -207,6 +214,9 @@ async function getServer(options: RunOptions = {}) {
       req.preset = req.pathname.replace("/v1/messages", "").replace("/", "");
     }
   })
+
+  // Register and configure plugins from config (after pathname is set)
+  await registerPluginsFromConfig(serverInstance, config);
 
   serverInstance.addHook("preHandler", async (req: any, reply: any) => {
     if (req.pathname.endsWith("/v1/messages")) {
@@ -453,6 +463,7 @@ export type { RunOptions };
 export type { IAgent, ITool } from "./agents/type";
 export { initDir, initConfig, readConfigFile, writeConfigFile, backupConfigFile } from "./utils";
 export { pluginManager, tokenSpeedPlugin } from "@musistudio/llms";
+export { requestLoggerPlugin } from "./plugins/request-logger.plugin";
 
 // Start service if this file is run directly
 if (require.main === module) {

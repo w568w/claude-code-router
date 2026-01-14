@@ -22,6 +22,7 @@
     "@musistudio/llms": "workspace:*",
     "adm-zip": "^0.5.16",
     "dotenv": "^16.4.7",
+    "fastify-plugin": "^5.1.0",
     "json5": "^2.2.3",
     "lru-cache": "^11.2.2",
     "rotating-file-stream": "^3.2.7",

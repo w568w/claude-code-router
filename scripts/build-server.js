@@ -25,7 +25,20 @@ try {
   // Build the server application
   console.log('Building server application...');
   // 使用 minify 和 tree-shaking 优化体积
-  execSync('esbuild src/index.ts --bundle --platform=node --minify --tree-shaking=true --outfile=dist/index.js', {
+  // Note: We need to prevent esbuild from statically evaluating process.env.CCR_* variables
+  // by using --define to mark them as runtime values (undefined forces runtime evaluation)
+  const esbuildCmd = [
+    'esbuild src/index.ts',
+    '--bundle',
+    '--platform=node',
+    '--minify',
+    '--tree-shaking=true',
+    '--outfile=dist/index.js',
+    // Prevent static optimization of CCR environment variables
+    '--define:process.env.CCR_CONFIG_FILE=process.env.CCR_CONFIG_FILE',
+    '--define:process.env.CCR_HOME=process.env.CCR_HOME'
+  ].join(' ');
+  execSync(esbuildCmd, {
     stdio: 'inherit',
     cwd: serverDir
   });
